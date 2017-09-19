@@ -1,0 +1,128 @@
+Reproducible Research: Peer Assessment 1
+===============
+
+Download data and process date column
+
+```{r}
+require(plyr)
+require(Hmisc)
+library(ggplot2)
+df <- read.csv("./activity.csv")
+df$date <- as.Date(as.character(df$date))
+df$date <- as.factor(df$date)
+str(df)
+```
+
+####What is mean total number of steps taken per day?
+
+Calculate total steps per day
+```{r echo=TRUE}
+day_total <- aggregate(df$steps, list(date = df$date), sum)
+print(day_total)
+```
+
+Calculate mean and median
+```{r}
+mean(day_total$x, na.rm=TRUE)
+```
+```{r}
+median(day_total$x, na.rm=TRUE)
+```
+
+Make a histogram
+
+```{r echo=TRUE}
+names(day_total)[2] <- "total_steps"
+qplot(day_total$total_steps, binwidth = 2000, geom = "histogram", xlab = "Total Steps", ylab = "Freq", main ="Steps Per Day", fill=I("green"))
+```
+
+####What is the average daily activity pattern?
+Calculate and plot
+```{r}
+interval_steps <- aggregate(x=list(steps=df$steps), 
+                      by=list(interval=df$interval), 
+                      FUN=mean, na.rm=TRUE)
+plot(interval_steps$interval, interval_steps$steps, xlab="Interval", ylab="Steps", type = "l", col="red")
+```
+
+Max 5-min interval
+```{r}
+interval_steps[which.max(interval_steps[,2]), ]
+```
+
+####Imputing missing values
+Calculate the total number of NA
+```{r}
+sum(is.na(df$steps))
+```
+
+Strategy for filling-in NA values.  I've decided to replace each NA with the mean of the entire steps column.
+```{r}
+df_mean <- mean(df$steps, na.rm = TRUE)
+df_no_na <- df
+df_no_na[is.na(df_no_na)] <- df_mean
+head(df_no_na, 20)
+```
+Verify there are no NAs left
+```{r}
+sum(is.na(df_no_na$steps))
+```
+Make a histogram
+```{r}
+no_na_total <- aggregate(df_no_na$steps, list(date = df_no_na$date), sum)
+names(no_na_total)[2] <- "total_steps"
+qplot(no_na_total$total_steps, binwidth = 2000, geom = "histogram", xlab = "Date", ylab = "Steps", fill=I("green"))
+```
+Calculate mean and median
+```{r}
+mean(no_na_total$total_steps, na.rm=TRUE)
+```
+```{r}
+median(no_na_total$total_steps, na.rm=TRUE)
+```
+What effect does imputing have?  
+Imputing the mean into every NA leaves the mean unchanged but changes the median slightly.
+
+
+
+####Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+df3 <- mutate(df, day = weekdays(as.Date(df$date)))
+head(df3)
+tail(df3)
+```
+Subset out Saturday and Sunday
+```{r}
+df4 <- subset(df3, day == "Saturday")
+df5 <- subset(df3, day == "Sunday")
+df6 <- rbind(df4, df5)
+head(df6)
+tail(df6)
+```
+Plot the weekend data in 5-min time series
+```{r}
+weekend_data <- aggregate(x=list(steps=df6$steps), 
+                      by=list(interval=df6$interval), 
+                      FUN=mean, na.rm=TRUE)
+plot(weekend_data$interval, weekend_data$steps, xlab="Weekend Interval", ylab="Steps", type = "l", col="red")
+```
+
+plot weekday data
+```{r}
+df44 <- subset(df3, day == "Monday")
+df45 <- subset(df3, day == "Tuesday")
+df46 <- subset(df3, day == "Wednesday")
+df47 <- subset(df3, day == "Thursday")
+df48 <- subset(df3, day == "Friday")
+df6 <- rbind(df44, df45, df46, df47, df48)
+head(df6)
+tail(df6)
+```
+Plot weekday data
+```{r}
+weekday_data <- aggregate(x=list(steps=df6$steps), 
+                      by=list(interval=df6$interval), 
+                      FUN=mean, na.rm=TRUE)
+plot(weekday_data$interval, weekday_data$steps, xlab="Weekday Interval", ylab="Steps", type = "l", col="blue")
+```
